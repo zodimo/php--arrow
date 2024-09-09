@@ -27,7 +27,7 @@ class KleisliIOComposition
      * @template _OUTPUT
      * @template _ERR
      *
-     * @param KleisliIO<IOMonad, _INPUT,_OUTPUT, _ERR> $arrow
+     * @param KleisliIO<_INPUT,_OUTPUT, _ERR> $arrow
      *
      * @return KleisliIOComposition<_INPUT,_OUTPUT, _ERR>
      */
@@ -42,7 +42,7 @@ class KleisliIOComposition
      * @template _OUTPUTK
      * @template _ERRK
      *
-     * @param KleisliIO<IOMonad, OUTPUT,_OUTPUTK, _ERRK> $arrow
+     * @param KleisliIO<OUTPUT,_OUTPUTK, _ERRK> $arrow
      *
      * @return KleisliIOComposition<INPUT,_OUTPUTK, _ERRK|ERR>
      */
@@ -103,7 +103,7 @@ class KleisliIOComposition
     }
 
     /**
-     * @return KleisliIO<IOMonad, INPUT, OUTPUT ,ERR>
+     * @return KleisliIO<INPUT, OUTPUT ,ERR>
      */
     public function asKleisliIO(): KleisliIO
     {
