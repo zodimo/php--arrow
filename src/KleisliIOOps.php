@@ -288,18 +288,17 @@ class KleisliIOOps
      * @param KleisliIO<_OUTPUT, _OUTPUTF, _ERRF> $during
      * @param KleisliIO<_OUTPUT, null, _ERRG>     $release
      *
-     * @return KleisliIO<_INPUT, _OUTPUTF, _ERR|_ERRF|_ERRG|\Throwable>
+     * @return KleisliIO<_INPUT, Tuple<IOMonad<_OUTPUTF, _ERRF|\Throwable>, IOMonad<null, _ERRG>>, _ERR>
      */
     public static function bracket(KleisliIO $acquire, KleisliIO $during, KleisliIO $release): KleisliIO
     {
         /**
-         * @var callable(_INPUT):IOMonad<_OUTPUTF, _ERR|_ERRF|_ERRG|\Throwable>
+         * @var callable(_INPUT):IOMonad<Tuple<IOMonad<_OUTPUTF, _ERRF|\Throwable>, IOMonad<null, _ERRG>, _ERR>
          */
         $func = function ($input) use ($acquire, $during, $release) {
             $acquireResult = $acquire->run($input);
 
             return $acquireResult->flatmap(
-                // @phpstan-ignore argument.type
                 // @phpstan-ignore argument.type
                 function ($acquiredResource) use ($during, $release) {
                     try {

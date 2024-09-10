@@ -6,11 +6,11 @@ namespace Zodimo\Arrow\Tests\Integration\Arrow;
 
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Zodimo\BaseReturn\IOMonad;
-use Zodimo\BaseReturn\Tuple;
 use Zodimo\Arrow\KleisliIO;
 use Zodimo\Arrow\KleisliIOOps;
 use Zodimo\Arrow\Tests\MockClosureTrait;
+use Zodimo\BaseReturn\IOMonad;
+use Zodimo\BaseReturn\Tuple;
 
 /**
  * @internal
@@ -237,7 +237,7 @@ class KleisliIOOpsTest extends TestCase
         );
 
         $this->assertTrue($result->isSuccess(), "{$variant}: isSuccess");
-        // @phpstan-ignore argument.type
+
         $this->assertEquals($expectedResult, $result->unwrapSuccess($this->createClosureNotCalled()), "{$variant}: result");
     }
 
