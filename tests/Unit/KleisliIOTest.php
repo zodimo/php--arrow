@@ -100,29 +100,30 @@ class KleisliIOTest extends TestCase
                 return KleisliIO::liftPure(fn ($y) => $y + 10);
             }
 
-            return KleisliIO::liftPure(fn ($y) => $y + 20);
+            return KleisliIO::liftPure(fn ($_) => $x + 20);
         };
 
         $flatmapArrow = $arrow->flatMap($choice);
 
-        $this->assertEquals(12, $flatmapArrow->run(2)->unwrapSuccess($this->createClosureNotCalled()), '[2] +5 < 10  = [2] + 10');
-        $this->assertEquals(27, $flatmapArrow->run(7)->unwrapSuccess($this->createClosureNotCalled()), '[7] + 5 > 10 = [7]  + 20');
+        $this->assertEquals(12, $flatmapArrow->run(2)->unwrapSuccess($this->createClosureNotCalled()), '([2] + 5 )< 10  = [2] + 10');
+        $this->assertEquals(32, $flatmapArrow->run(7)->unwrapSuccess($this->createClosureNotCalled()), '([7] + 5) > 10 = [7 + 5]  + 20');
     }
 
-    public function testFlatMapK()
+    public function testFlatMap2()
     {
         $arrow = KleisliIO::liftPure(fn ($x) => $x + 5);
 
-        $func = fn (int $x) => IOMonad::pure($x + 10);
+        // not so intuitive...
+        $func = fn (int $y) => KleisliIO::liftPure(fn ($_) => $y + 10);
 
-        $flatmapArrow = $arrow->flatMapK($func);
+        $flatmapArrow = $arrow->flatMap($func)->flatMap($func);
 
-        $this->assertEquals(17, $flatmapArrow->run(2)->unwrapSuccess($this->createClosureNotCalled()), '[2] +7 + 10 ');
+        $this->assertEquals(27, $flatmapArrow->run(2)->unwrapSuccess($this->createClosureNotCalled()), '[2] + 5 + 10 + 10');
     }
 
     public function testAndThenK()
     {
-        $arrow = KleisliIO::liftPure(fn ($x) => $x + 5);
+        $arrow = KleisliIO::liftPure(fn (int $x) => $x + 5);
 
         $func = fn (int $x) => IOMonad::pure($x + 10);
 
@@ -140,5 +141,44 @@ class KleisliIOTest extends TestCase
         $flatmapArrow = $arrow->andThen(KleisliIO::arr($func));
 
         $this->assertEquals(17, $flatmapArrow->run(2)->unwrapSuccess($this->createClosureNotCalled()), '[2] +7 + 10 ');
+    }
+
+    public function testStackSafetyAndThen()
+    {
+        $addOne = KleisliIO::liftPure(fn (int $x) => $x + 1);
+
+        $composition = KleisliIO::id();
+
+        foreach (range(0, 999) as $_) {
+            $composition = $composition->andThen($addOne);
+        }
+
+        $this->assertEquals(1000, $composition->run(0)->unwrapSuccess($this->createClosureNotCalled()));
+    }
+
+    public function testStackSafetyAndThenK()
+    {
+        $addOneK = fn (int $x) => IOMonad::pure($x + 1);
+
+        $composition = KleisliIO::id();
+
+        foreach (range(0, 999) as $_) {
+            $composition = $composition->andThenK($addOneK);
+        }
+
+        $this->assertEquals(1000, $composition->run(0)->unwrapSuccess($this->createClosureNotCalled()));
+    }
+
+    public function testStackSafetyFlatMap()
+    {
+        $addOneK = fn (int $x) => KleisliIO::liftPure(fn (int $_) => $x + 1);
+
+        $composition = KleisliIO::id();
+
+        foreach (range(0, 999) as $_) {
+            $composition = $composition->flatmap($addOneK);
+        }
+
+        $this->assertEquals(1000, $composition->run(0)->unwrapSuccess($this->createClosureNotCalled()));
     }
 }

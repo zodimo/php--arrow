@@ -32,7 +32,8 @@
         "junstyle.php-cs-fixer",
         "SanderRonde.phpstan-vscode",
         "github.vscode-github-actions",
-        "DEVSENSE.phptools-vscode"
+        "DEVSENSE.phptools-vscode",
+        "xdebug.php-debug"
       ]
     }
   }
