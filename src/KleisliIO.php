@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Zodimo\Arrow;
 
+use Zodimo\Arrow\Handlers\AndThen;
+use Zodimo\Arrow\Handlers\FlatMap;
+use Zodimo\Arrow\Internal\Operation;
 use Zodimo\BaseReturn\IOMonad;
 
 /**
@@ -15,14 +18,17 @@ use Zodimo\BaseReturn\IOMonad;
  */
 class KleisliIO
 {
-    private $f;
+    private const TAG_ID = 'id';
+    private const TAG_ARR = 'arr';
+    private const TAG_LIFT_PURE = 'lift-pure';
+    private const TAG_LIFT_IMPURE = 'lift-impure';
+    private const TAG_AND_THEN = 'and-then';
+    private const TAG_FLAT_MAP = 'flat-map';
+    private Operation $_operation;
 
-    /**
-     * @param callable(INPUT):IOMonad<OUTPUT,ERR> $f
-     */
-    private function __construct($f)
+    private function __construct(Operation $operation)
     {
-        $this->f = $f;
+        $this->_operation = $operation;
     }
 
     /**
@@ -38,16 +44,23 @@ class KleisliIO
      */
     public function andThen(KleisliIO $k): KleisliIO
     {
-        $that = $this;
+        $ks = [];
+        if (self::TAG_AND_THEN == $this->getTag()) {
+            $ks = [...$this->getArg('ks')];
+        } else {
+            $ks = [$this];
+        }
 
-        /**
-         * @var callable(INPUT):IOMonad<_OUTPUTK, mixed> $func
-         */
-        $func = function ($input) use ($that, $k) {
-            return $that->run($input)->flatmap(fn ($value) => $k->run($value));
-        };
+        if (self::TAG_AND_THEN == $k->getTag()) {
+            $ks = [...$ks, ...$k->getArg('ks')];
+        } else {
+            $ks[] = $k;
+        }
 
-        return new KleisliIO($func);
+        return new KleisliIO(
+            Operation::create(self::TAG_AND_THEN)
+                ->setArg('ks', $ks)
+        );
     }
 
     /**
@@ -56,13 +69,13 @@ class KleisliIO
      * @template _OUTPUTK
      * @template _ERRK
      *
-     * @param callable(OUTPUT):IOMonad<_OUTPUTK, _ERRK> $k
+     * @param callable(OUTPUT):IOMonad<_OUTPUTK, _ERRK> $f
      *
      * @return KleisliIO<INPUT,_OUTPUTK, _ERRK|ERR>
      */
-    public function andThenK(callable $k): KleisliIO
+    public function andThenK(callable $f): KleisliIO
     {
-        return $this->andThen(KleisliIO::arr($k));
+        return $this->andThen(KleisliIO::arr($f));
     }
 
     /**
@@ -71,51 +84,27 @@ class KleisliIO
      * @template _OUTPUTK
      * @template _ERRK
      *
-     * @param callable(OUTPUT):KleisliIO<INPUT,_OUTPUTK, _ERRK> $k
+     * @param callable(OUTPUT):KleisliIO<INPUT,_OUTPUTK, _ERRK> $f
      *
      * @return KleisliIO<INPUT,_OUTPUTK, _ERRK|ERR>
      */
-    public function flatMap(callable $k): KleisliIO
+    public function flatMap(callable $f): KleisliIO
     {
-        $that = $this;
+        if (self::TAG_FLAT_MAP == $this->getTag()) {
+            $that = $this->getArg('that');
+            $fs = $this->getArg('fs');
+        } else {
+            $that = clone $this;
+            $fs = [];
+        }
 
-        /**
-         * @var callable(INPUT):IOMonad<_OUTPUTK, _ERRK|ERR> $func
-         */
-        $func = function ($x) use ($that, $k) {
-            $result = $that->run($x); // M[B]
+        $fs[] = $f;
 
-            return $result->flatmap(function ($a) use ($k, $x) {
-                return call_user_func($k, $a)->run($x);
-            });
-        };
-
-        return new KleisliIO($func);
-    }
-
-    /**
-     * @template _OUTPUTK
-     * @template _ERRK
-     *
-     * @param callable(OUTPUT):IOMonad<_OUTPUTK, _ERRK> $f
-     *
-     * @return KleisliIO<INPUT,_OUTPUTK, _ERRK|ERR>
-     */
-    public function flatMapK(callable $f): KleisliIO
-    {
-        // same as
-        // return $this->andThen(KleisliIO::arr($f));
-
-        $that = $this;
-
-        /**
-         * @var callable(INPUT):IOMonad<_OUTPUTK, _ERRK|ERR>
-         */
-        $func = function ($input) use ($that, $f) {
-            return $that->run($input)->flatmap($f);
-        };
-
-        return new KleisliIO($func);
+        return new KleisliIO(
+            Operation::create(self::TAG_FLAT_MAP)
+                ->setArg('that', $that)
+                ->setArg('fs', $fs)
+        );
     }
 
     /**
@@ -131,7 +120,7 @@ class KleisliIO
      */
     public static function arr(callable $f): KleisliIO
     {
-        return new KleisliIO($f);
+        return new KleisliIO(Operation::create(self::TAG_ARR)->setArg('f', $f));
     }
 
     /**
@@ -144,7 +133,7 @@ class KleisliIO
      */
     public static function liftPure(callable $f): KleisliIO
     {
-        return KleisliIO::arr(fn ($x) => IOMonad::pure(call_user_func($f, $x)));
+        return new KleisliIO(Operation::create(self::TAG_LIFT_PURE)->setArg('f', $f));
     }
 
     /**
@@ -156,9 +145,7 @@ class KleisliIO
      */
     public static function id(): KleisliIO
     {
-        $func = fn ($a) => IOMonad::pure($a);
-
-        return new KleisliIO($func);
+        return new KleisliIO(Operation::create(self::TAG_ID));
     }
 
     /**
@@ -166,9 +153,61 @@ class KleisliIO
      *
      * @return IOMonad<OUTPUT, ERR>
      */
-    public function run($value)
+    public function run($value): IOMonad
     {
-        return call_user_func($this->f, $value);
+        // return self::evaluate($this, $value);
+        // handlers....
+
+        switch ($this->getTag()) {
+            case self::TAG_ID:
+                // @phpstan-ignore return.type
+                return IOMonad::pure($value);
+
+            case self::TAG_ARR:
+                $f = $this->getArg('f');
+
+                return call_user_func($f, $value);
+
+            case self::TAG_LIFT_PURE:
+                $f = $this->getArg('f');
+
+                return IOMonad::pure(call_user_func($f, $value));
+
+            case self::TAG_LIFT_IMPURE:
+                $f = $this->getArg('f');
+
+                try {
+                    return IOMonad::pure(call_user_func($f, $value));
+                } catch (\Throwable $e) {
+                    // @phpstan-ignore return.type
+                    return IOMonad::fail($e);
+                }
+
+            case self::TAG_FLAT_MAP:
+                $that = $this->getArg('that');
+                $fs = $this->getArg('fs');
+
+                $flatMap = array_reduce($fs, function (FlatMap $acc, callable $item) {
+                    return $acc->addF($item);
+                }, FlatMap::initializeWith($that));
+
+                return $flatMap->asKleisliIO()->run($value);
+
+            case self::TAG_AND_THEN:
+                $ks = $this->getArg('ks');
+
+                /**
+                 * @var AndThen $andThen
+                 */
+                $andThen = array_reduce($ks, function ($acc, $item) {
+                    return $acc->addArrow($item);
+                }, AndThen::id());
+
+                return $andThen->asKleisliIO()->run($value);
+
+            default:
+                throw new \InvalidArgumentException('Unknown operation: '.$this->getTag());
+        }
     }
 
     /**
@@ -181,17 +220,21 @@ class KleisliIO
      */
     public static function liftImpure($f): KleisliIO
     {
-        /**
-         * @var callable(_INPUT):IOMonad<_OUTPUT, mixed>
-         */
-        $try = function ($a) use ($f) {
-            try {
-                return IOMonad::pure(call_user_func($f, $a));
-            } catch (\Throwable $e) {
-                return IOMonad::fail($e);
-            }
-        };
+        return new KleisliIO(Operation::create(self::TAG_LIFT_IMPURE)->setArg('f', $f));
+    }
 
-        return self::arr($try);
+    private function getTag(): string
+    {
+        return $this->_operation->getTag();
+    }
+
+    /**
+     * @param mixed $argName
+     *
+     * @return mixed
+     */
+    private function getArg($argName)
+    {
+        return $this->_operation->getArg($argName);
     }
 }
