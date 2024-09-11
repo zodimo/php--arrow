@@ -24,7 +24,7 @@ class AndThen
     /**
      * @template _INPUT of mixed
      *
-     * @return AndThen<_INPUT, _INPUT, mixed>
+     * @return AndThen<_INPUT,_INPUT, mixed>
      *
      * @phpstan-ignore method.templateTypeNotInParameter
      */
@@ -39,9 +39,9 @@ class AndThen
      * @template _OUTPUTK
      * @template _ERRK
      *
-     * @param KleisliIO<OUTPUT,_OUTPUTK, _ERRK> $arrow
+     * @param KleisliIO<OUTPUT,_OUTPUTK,_ERRK> $arrow
      *
-     * @return AndThen<INPUT,_OUTPUTK, _ERRK|ERR>
+     * @return AndThen<INPUT,_OUTPUTK,_ERRK|ERR>
      */
     public function addArrow(KleisliIO $arrow): AndThen
     {
@@ -54,7 +54,7 @@ class AndThen
     /**
      * @param INPUT $value
      *
-     * @return IOMonad<OUTPUT ,ERR>
+     * @return IOMonad<OUTPUT,ERR>
      */
     public function run($value)
     {
@@ -78,7 +78,7 @@ class AndThen
     }
 
     /**
-     * @return KleisliIO<INPUT, OUTPUT ,ERR>
+     * @return KleisliIO<INPUT,OUTPUT,ERR>
      */
     public function asKleisliIO(): KleisliIO
     {

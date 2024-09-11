@@ -32,9 +32,9 @@ class KleisliIOOps
      * @template _OUTPUT d
      * @template _ERR
      *
-     * @param KleisliIO<_INPUT, _OUTPUT, _ERR> $arrow
+     * @param KleisliIO<_INPUT,_OUTPUT,_ERR> $arrow
      *
-     * @return KleisliIO<Tuple<_INPUT, mixed>, Tuple<_OUTPUT, mixed>, _ERR>
+     * @return KleisliIO<Tuple<_INPUT,mixed>,Tuple<_OUTPUT,mixed>,_ERR>
      */
     public static function first(KleisliIO $arrow): KleisliIO
     {
@@ -60,9 +60,9 @@ class KleisliIOOps
      * @template _OUTPUT d
      * @template _ERR
      *
-     * @param KleisliIO<_INPUT, _OUTPUT, _ERR> $arrow
+     * @param KleisliIO<_INPUT,_OUTPUT,_ERR> $arrow
      *
-     * @return KleisliIO<Tuple<mixed, _INPUT>, Tuple<mixed, _OUTPUT>, _ERR>
+     * @return KleisliIO<Tuple<mixed,_INPUT>,Tuple<mixed,_OUTPUT>,_ERR>
      */
     public static function second(KleisliIO $arrow): KleisliIO
     {
@@ -97,10 +97,10 @@ class KleisliIOOps
      * @template _ERRF
      * @template _ERRG
      *
-     * @param KleisliIO< _INPUTF, _OUTPUTF, _ERRF>  $f
-     * @param KleisliIO< _OUTPUTF, _OUTPUTG, _ERRG> $g
+     * @param KleisliIO<_INPUTF,_OUTPUTF,_ERRF>  $f
+     * @param KleisliIO<_OUTPUTF,_OUTPUTG,_ERRG> $g
      *
-     * @return KleisliIO< _INPUTF, _OUTPUTG, _ERRF|_ERRG>
+     * @return KleisliIO<_INPUTF,_OUTPUTG,_ERRF|_ERRG>
      */
     public static function compose(KleisliIO $f, KleisliIO $g): KleisliIO
     {
@@ -123,10 +123,10 @@ class KleisliIOOps
      * @template _ERRF
      * @template _ERRG
      *
-     * @param KleisliIO<_INPUTF, _OUTPUTF, _ERRF> $f
-     * @param KleisliIO<_INPUTG, _OUTPUTG, _ERRG> $g
+     * @param KleisliIO<_INPUTF,_OUTPUTF,_ERRF> $f
+     * @param KleisliIO<_INPUTG,_OUTPUTG,_ERRG> $g
      *
-     * @return KleisliIO<Tuple<_INPUTF, _INPUTG>, Tuple<_OUTPUTF,_OUTPUTG>, _ERRF|_ERRG>
+     * @return KleisliIO<Tuple<_INPUTF,_INPUTG>,Tuple<_OUTPUTF,_OUTPUTG>,_ERRF|_ERRG>
      */
     public static function merge(KleisliIO $f, KleisliIO $g): KleisliIO
     {
@@ -156,10 +156,10 @@ class KleisliIOOps
      * @template _ERRF
      * @template _ERRG
      *
-     * @param KleisliIO<_INPUT, _OUPUTF, _ERRF>  $f
-     * @param KleisliIO<_INPUT, _OUTPUTG, _ERRG> $g
+     * @param KleisliIO<_INPUT,_OUPUTF,_ERRF>  $f
+     * @param KleisliIO<_INPUT,_OUTPUTG,_ERRG> $g
      *
-     * @return KleisliIO<_INPUT,  Tuple<_OUPUTF,  _OUTPUTG>, _ERRF|_ERRG>
+     * @return KleisliIO<_INPUT,Tuple<_OUPUTF,_OUTPUTG>,_ERRF|_ERRG>
      */
     public static function split(KleisliIO $f, KleisliIO $g): KleisliIO
     {
@@ -180,10 +180,10 @@ class KleisliIOOps
      * @template _LEFTERR
      * @template _RIGHTERR
      *
-     * @param KleisliIO< _INPUT, _OUTPUT, _LEFTERR>  $onLeft
-     * @param KleisliIO< _INPUT, _OUTPUT, _RIGHTERR> $onRight
+     * @param KleisliIO<_INPUT,_OUTPUT,_LEFTERR>  $onLeft
+     * @param KleisliIO<_INPUT,_OUTPUT,_RIGHTERR> $onRight
      *
-     * @return KleisliIO< Either<_INPUT, _INPUT>, _OUTPUT, _LEFTERR|_RIGHTERR>
+     * @return KleisliIO<Either<_INPUT,_INPUT>,_OUTPUT,_LEFTERR|_RIGHTERR>
      */
     public static function choice(KleisliIO $onLeft, KleisliIO $onRight): KleisliIO
     {
@@ -209,11 +209,11 @@ class KleisliIOOps
      * @template _THENERR
      * @template _ELSEERR
      *
-     * @param KleisliIO< _INPUT, bool, _CONDERR>    $cond
-     * @param KleisliIO< _INPUT, _OUTPUT, _THENERR> $then
-     * @param KleisliIO< _INPUT, _OUTPUT, _ELSEERR> $else
+     * @param KleisliIO< _INPUT,bool,_CONDERR>    $cond
+     * @param KleisliIO< _INPUT,_OUTPUT,_THENERR> $then
+     * @param KleisliIO< _INPUT,_OUTPUT,_ELSEERR> $else
      *
-     * @return KleisliIO< _INPUT, _OUTPUT, _ELSEERR|_THENERR>
+     * @return KleisliIO< _INPUT,_OUTPUT,_ELSEERR|_THENERR>
      */
     public static function ifThenElse(KleisliIO $cond, KleisliIO $then, KleisliIO $else): KleisliIO
     {
@@ -242,10 +242,10 @@ class KleisliIOOps
      * @template _CHECKERR
      * @template _BODYERR
      *
-     * @param KleisliIO<_INPUT, bool, _CHECKERR>   $check
-     * @param KleisliIO<_INPUT, _OUTPUT, _BODYERR> $body
+     * @param KleisliIO<_INPUT,bool,_CHECKERR>   $check
+     * @param KleisliIO<_INPUT,_OUTPUT,_BODYERR> $body
      *
-     * @return KleisliIO<_INPUT, _OUTPUT, _BODYERR|_CHECKERR>
+     * @return KleisliIO<_INPUT,_OUTPUT,_BODYERR|_CHECKERR>
      */
     public static function whileDo(KleisliIO $check, KleisliIO $body): KleisliIO
     {
@@ -284,11 +284,11 @@ class KleisliIOOps
      * @template _ERRF
      * @template _ERRG
      *
-     * @param KleisliIO<_INPUT, _OUTPUT, _ERR>    $acquire
-     * @param KleisliIO<_OUTPUT, _OUTPUTF, _ERRF> $during
-     * @param KleisliIO<_OUTPUT, null, _ERRG>     $release
+     * @param KleisliIO<_INPUT,_OUTPUT,_ERR>    $acquire
+     * @param KleisliIO<_OUTPUT,_OUTPUTF,_ERRF> $during
+     * @param KleisliIO<_OUTPUT,null,_ERRG>     $release
      *
-     * @return KleisliIO<_INPUT, Tuple<IOMonad<_OUTPUTF, _ERRF|\Throwable>, IOMonad<null, _ERRG>>, _ERR>
+     * @return KleisliIO<_INPUT,Tuple<IOMonad<_OUTPUTF,_ERRF|\Throwable>,IOMonad<null,_ERRG>>,_ERR>
      */
     public static function bracket(KleisliIO $acquire, KleisliIO $during, KleisliIO $release): KleisliIO
     {

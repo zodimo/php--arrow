@@ -38,9 +38,9 @@ class KleisliIO
      * @template _OUTPUTK
      * @template _ERRK
      *
-     * @param KleisliIO<OUTPUT,_OUTPUTK, _ERRK> $k
+     * @param KleisliIO<OUTPUT,_OUTPUTK,_ERRK> $k
      *
-     * @return KleisliIO<INPUT,_OUTPUTK, _ERRK|ERR>
+     * @return KleisliIO<INPUT,_OUTPUTK,_ERRK|ERR>
      */
     public function andThen(KleisliIO $k): KleisliIO
     {
@@ -69,9 +69,9 @@ class KleisliIO
      * @template _OUTPUTK
      * @template _ERRK
      *
-     * @param callable(OUTPUT):IOMonad<_OUTPUTK, _ERRK> $f
+     * @param callable(OUTPUT):IOMonad<_OUTPUTK,_ERRK> $f
      *
-     * @return KleisliIO<INPUT,_OUTPUTK, _ERRK|ERR>
+     * @return KleisliIO<INPUT,_OUTPUTK,_ERRK|ERR>
      */
     public function andThenK(callable $f): KleisliIO
     {
@@ -84,9 +84,9 @@ class KleisliIO
      * @template _OUTPUTK
      * @template _ERRK
      *
-     * @param callable(OUTPUT):KleisliIO<INPUT,_OUTPUTK, _ERRK> $f
+     * @param callable(OUTPUT):KleisliIO<INPUT,_OUTPUTK,_ERRK> $f
      *
-     * @return KleisliIO<INPUT,_OUTPUTK, _ERRK|ERR>
+     * @return KleisliIO<INPUT,_OUTPUTK,_ERRK|ERR>
      */
     public function flatMap(callable $f): KleisliIO
     {
@@ -114,9 +114,9 @@ class KleisliIO
      * @template _OUPUT
      * @template _ERR
      *
-     * @param callable(_INPUT):IOMonad<_OUPUT, _ERR> $f
+     * @param callable(_INPUT):IOMonad<_OUPUT,_ERR> $f
      *
-     * @return KleisliIO<_INPUT, _OUPUT, _ERR>
+     * @return KleisliIO<_INPUT,_OUPUT,_ERR>
      */
     public static function arr(callable $f): KleisliIO
     {
@@ -129,7 +129,7 @@ class KleisliIO
      *
      * @param callable(_INPUT):_OUPUT $f
      *
-     * @return KleisliIO<_INPUT, _OUPUT, mixed>
+     * @return KleisliIO<_INPUT,_OUPUT,mixed>
      */
     public static function liftPure(callable $f): KleisliIO
     {
@@ -139,7 +139,7 @@ class KleisliIO
     /**
      * @template _INPUT
      *
-     * @return KleisliIO<_INPUT, _INPUT, mixed>
+     * @return KleisliIO<_INPUT,_INPUT,mixed>
      *
      * @phpstan-ignore method.templateTypeNotInParameter
      */
@@ -151,7 +151,7 @@ class KleisliIO
     /**
      * @param INPUT $value
      *
-     * @return IOMonad<OUTPUT, ERR>
+     * @return IOMonad<OUTPUT,ERR>
      */
     public function run($value): IOMonad
     {
