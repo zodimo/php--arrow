@@ -181,4 +181,34 @@ class KleisliIOTest extends TestCase
 
         $this->assertEquals(1000, $composition->run(0)->unwrapSuccess($this->createClosureNotCalled()));
     }
+
+    public function testIdentityLaw(): void
+    {
+        $arrowId = KleisliIO::id();
+        $arrowA = KleisliIO::liftPure(fn (int $x) => $x + 5);
+
+        $leftArrow = $arrowId->andThen($arrowA);
+        $rightArrow = $arrowA->andThen($arrowId);
+
+        $leftResult = $leftArrow->run(10)->unwrapSuccess($this->createClosureNotCalled());
+        $rightResult = $rightArrow->run(10)->unwrapSuccess($this->createClosureNotCalled());
+
+        $this->assertEquals($leftResult, $rightResult);
+    }
+
+    public function testAssociativityLaw()
+    {
+        $arrowA = KleisliIO::liftPure(fn (int $x) => $x + 5);
+        $arrowB = KleisliIO::liftPure(fn (int $x) => $x * 5);
+        $arrowC = KleisliIO::liftPure(fn (int $x) => $x - 5);
+        // i.e arrowA->andThen(arrowB->andThen(arrowC)) == arrowA->andThen(arrowB)->andThen(arrowC)
+
+        $leftArrow = $arrowA->andThen($arrowB->andThen($arrowC));
+        $rightArrow = $arrowA->andThen($arrowB)->andThen($arrowC);
+
+        $leftResult = $leftArrow->run(10)->unwrapSuccess($this->createClosureNotCalled());
+        $rightResult = $rightArrow->run(10)->unwrapSuccess($this->createClosureNotCalled());
+
+        $this->assertEquals($leftResult, $rightResult);
+    }
 }
