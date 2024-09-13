@@ -32,17 +32,22 @@ class KleisliIO
     }
 
     /**
-     * instance Monad m => Monad (Kleisli m a) where
-     * Kleisli f >>= k = Kleisli $ \x -> f x >>= \a -> runKleisli (k a) x.
+     * ">>>".
+     * A composition operator >>> that can attach a second arrow to a first
+     * as long as the first function’s output and the second’s input have matching types.
+     *
+     * -- | Left-to-right composition
+     * (>>>) :: Category cat => cat a b -> cat b c -> cat a c
+     * f >>> g = g . f
      *
      * @template _OUTPUTK
      * @template _ERRK
      *
-     * @param KleisliIO<OUTPUT,_OUTPUTK, _ERRK> $k
+     * @param KleisliIO<OUTPUT,_OUTPUTK, _ERRK> $g
      *
      * @return KleisliIO<INPUT,_OUTPUTK, _ERRK|ERR>
      */
-    public function andThen(KleisliIO $k): KleisliIO
+    public function andThen(KleisliIO $g): KleisliIO
     {
         $ks = [];
         if (self::TAG_AND_THEN == $this->getTag()) {
@@ -51,10 +56,10 @@ class KleisliIO
             $ks = [$this];
         }
 
-        if (self::TAG_AND_THEN == $k->getTag()) {
-            $ks = [...$ks, ...$k->getArg('ks')];
+        if (self::TAG_AND_THEN == $g->getTag()) {
+            $ks = [...$ks, ...$g->getArg('ks')];
         } else {
-            $ks[] = $k;
+            $ks[] = $g;
         }
 
         return new KleisliIO(
@@ -79,6 +84,7 @@ class KleisliIO
     }
 
     /**
+     * instance Monad m => Monad (Kleisli m a) where
      *   Kleisli f >>= k = Kleisli $ \x -> f x >>= \a -> runKleisli (k a) x.
      *
      * @template _OUTPUTK
