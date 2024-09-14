@@ -252,15 +252,16 @@ class KleisliIO
         return new KleisliIO(Operation::create(self::TAG_LIFT_IMPURE)->setArg('f', $f));
     }
 
-    // /**
-    //  * @return KFiber<INPUT,OUTPUT,ERR>
-    //  */
-    // public function toFiber(): KFiber
-    // {
-    //     // hook stepper into fiber....
+    /**
+     * @return KFiber<INPUT,OUTPUT,ERR>
+     */
+    public function toFiber(): KFiber
+    {
+        // hook stepper into fiber....
 
-    //     return KFiber::create(self::id()->flatMap(fn ($input) => $this->toSteppable()->stubInput($input)));
-    // }
+        // @phpstan-ignore return.type
+        return KFiber::create(self::id()->flatMap(fn ($input) => $this->toSteppable()->stubInput(IOMonad::pure($input))));
+    }
 
     /**
      * the control function will receive a continuation k.
