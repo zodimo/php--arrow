@@ -49,7 +49,7 @@ class StartedFiberTest extends TestCase
 
         $composition = KleisliIO::id();
 
-        foreach (range(0, 699) as $_) {
+        foreach (range(0, 999) as $_) {
             $composition = $composition->andThen($addOne);
         }
 
@@ -58,6 +58,25 @@ class StartedFiberTest extends TestCase
         $fiber = StartedFiber::createFromSteppableArrow($steppable);
         $finished = $fiber->run();
         $this->assertInstanceOf(FinishedFiber::class, $finished);
-        $this->assertEquals(700, $finished->getResult()->unwrapSuccess($this->createClosureNotCalled()));
+        $this->assertEquals(1000, $finished->getResult()->unwrapSuccess($this->createClosureNotCalled()));
+    }
+
+    public function testStackSafetyFlatMap()
+    {
+        $input = IOMonad::pure(0);
+        $addOneK = fn (int $x) => KleisliIO::liftPure(fn (int $_) => $x + 1);
+
+        $composition = KleisliIO::id();
+
+        foreach (range(0, 999) as $_) {
+            $composition = $composition->flatmap($addOneK);
+        }
+
+        $staged = StagedKleisliIO::stageWithArrow($input, $composition);
+        $steppable = SteppableKleisliIO::augment($staged);
+        $fiber = StartedFiber::createFromSteppableArrow($steppable);
+        $finished = $fiber->run();
+        $this->assertInstanceOf(FinishedFiber::class, $finished);
+        $this->assertEquals(1000, $finished->getResult()->unwrapSuccess($this->createClosureNotCalled()));
     }
 }

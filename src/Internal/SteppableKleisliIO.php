@@ -111,14 +111,21 @@ class SteppableKleisliIO
 
                         return $result->match(
                             function ($x) use ($k, $fs, $result) {
-                                $arrow = call_user_func($k, $x);
+                                $that = call_user_func($k, $x);
 
-                                $arrow = array_reduce($fs, function (KleisliIO $carry, callable $x) {
-                                    return $carry->flatMap($x);
-                                }, $arrow);
+                                if (count($fs) > 0) {
+                                    $arrow = KleisliIO::create(
+                                        Operation::create(KleisliIO::TAG_FLAT_MAP)
+                                            ->setArg('that', $that)
+                                            ->setArg('fs', $fs)
+                                    );
+
+                                    // @phpstan-ignore argument.type
+                                    return SteppableKleisliIO::augment(StagedKleisliIO::stageWithArrow($result, $arrow));
+                                }
 
                                 // @phpstan-ignore argument.type
-                                return SteppableKleisliIO::augment(StagedKleisliIO::stageWithArrow($result, $arrow));
+                                return SteppableKleisliIO::augment(StagedKleisliIO::stageWithArrow($result, $that));
                             },
                             // @phpstan-ignore argument.type
                             fn ($_) => SteppableKleisliIO::augment(StagedKleisliIO::stageWithoutArrow($result))
@@ -134,15 +141,20 @@ class SteppableKleisliIO
                         $result = $input->flatMap(function ($x) use ($k) {
                             return $k->run($x);
                         });
-                        $nextK = array_shift($ks);
+                        // $nextK = array_shift($ks);
 
                         return $result->match(
-                            function ($x) use ($ks, $result, $nextK) {
-                                $arrow = array_reduce($ks, function (KleisliIO $carry, KleisliIO $item) {
-                                    return $carry->andThen($item);
-                                }, $nextK);
+                            function ($x) use ($ks, $result) {
+                                if (count($ks) > 0) {
+                                    $arrow = KleisliIO::create(
+                                        Operation::create(KleisliIO::TAG_AND_THEN)
+                                            ->setArg('ks', $ks)
+                                    );
 
-                                return SteppableKleisliIO::augment(StagedKleisliIO::stageWithArrow($result, $arrow));
+                                    return SteppableKleisliIO::augment(StagedKleisliIO::stageWithArrow($result, $arrow));
+                                }
+
+                                return SteppableKleisliIO::augment(StagedKleisliIO::stageWithoutArrow($result));
                             },
                             fn ($_) => SteppableKleisliIO::augment(StagedKleisliIO::stageWithoutArrow($result))
                         );
