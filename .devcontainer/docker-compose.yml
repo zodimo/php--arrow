@@ -3,7 +3,7 @@ services:
     build: ./docker/app
     environment:
       PHP_EXTENSION_XDEBUG: 1
-      XDEBUG_MODE: "debug,develop"
+      XDEBUG_MODE: "debug,develop,profile"
       XDEBUG_CONFIG: "client_port=9003 client_host=localhost"
     volumes:
       - ../:/workspace:cached
