@@ -43,9 +43,9 @@ class KFiber
      */
     public function start($input): StartedFiber
     {
-        $stagedArrowResult = $this->arrow->run($input);
+        $steppableArrowResult = $this->arrow->run($input);
 
-        $stagedArrowOption = $stagedArrowResult->match(
+        $steppableArrowOption = $steppableArrowResult->match(
             function ($result) {
                 if ($result instanceof SteppableKleisliIO) {
                     return Option::some($result);
@@ -62,9 +62,9 @@ class KFiber
             }
         );
 
-        return $stagedArrowOption->match(
+        return $steppableArrowOption->match(
             fn ($stagedArrow) => StartedFiber::createFromSteppableArrow($stagedArrow),
-            fn () => StartedFiber::createFromResult($stagedArrowResult)
+            fn () => StartedFiber::createFromResult($steppableArrowResult)
         );
     }
 }

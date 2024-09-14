@@ -198,4 +198,29 @@ class KleisliIOTest extends TestCase
 
         $this->assertEquals($expectedResult, $result->unwrapSuccess($this->createClosureNotCalled()));
     }
+
+    public function testToFiber()
+    {
+        $fiber = KleisliIO::id()->andThen(KleisliIO::liftPure(fn (int $x) => $x + 10))->toFiber();
+        $startedFiber = $fiber->start(10);
+        $result = $startedFiber->run()->getResult();
+        $this->assertEquals(20, $result->unwrapSuccess($this->createClosureNotCalled()));
+    }
+
+    public function testStackSafetyAndThenToFiber()
+    {
+        $addOne = KleisliIO::liftPure(fn (int $x) => $x + 1);
+
+        $composition = KleisliIO::id();
+
+        foreach (range(0, 999) as $_) {
+            $composition = $composition->andThen($addOne);
+        }
+
+        $fiber = $composition->toFiber();
+
+        $startedFiber = $fiber->start(0);
+        $result = $startedFiber->run()->getResult();
+        $this->assertEquals(1000, $result->unwrapSuccess($this->createClosureNotCalled()));
+    }
 }

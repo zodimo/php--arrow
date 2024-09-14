@@ -26,12 +26,12 @@ class StartedFiber
     private Option $resultOption;
 
     /**
-     * @param Option<SteppableKleisliIO<INPUT,OUTPUT,ERR,ERRPREV>> $stagedArrowOption
+     * @param Option<SteppableKleisliIO<INPUT,OUTPUT,ERR,ERRPREV>> $steppableArrowOption
      * @param Option<IOMonad<OUTPUT,ERRPREV>>                      $resultOption
      */
-    private function __construct(Option $stagedArrowOption, Option $resultOption)
+    private function __construct(Option $steppableArrowOption, Option $resultOption)
     {
-        $this->steppableArrowOption = $stagedArrowOption;
+        $this->steppableArrowOption = $steppableArrowOption;
         $this->resultOption = $resultOption;
     }
 
@@ -57,14 +57,14 @@ class StartedFiber
      * @template _ERR
      * @template _ERRPREV
      *
-     * @param SteppableKleisliIO<_INPUT,_OUTPUT,_ERR,_ERRPREV> $stagedArrow
+     * @param SteppableKleisliIO<_INPUT,_OUTPUT,_ERR,_ERRPREV> $steppableArrow
      *
      * @return StartedFiber<_INPUT,_OUTPUT,_ERR,_ERRPREV>
      */
-    public static function createFromSteppableArrow(SteppableKleisliIO $stagedArrow): StartedFiber
+    public static function createFromSteppableArrow(SteppableKleisliIO $steppableArrow): StartedFiber
     {
         return new self(
-            Option::some($stagedArrow),
+            Option::some($steppableArrow),
             Option::none(),
         );
     }
