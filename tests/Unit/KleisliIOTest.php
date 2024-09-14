@@ -181,4 +181,21 @@ class KleisliIOTest extends TestCase
 
         $this->assertEquals(1000, $composition->run(0)->unwrapSuccess($this->createClosureNotCalled()));
     }
+
+    public function testPrompt()
+    {
+        $prompt = KleisliIO::prompt(KleisliIO::id());
+        $result = $prompt->run(10);
+        $this->assertEquals(10, $result->unwrapSuccess($this->createClosureNotCalled()));
+    }
+
+    public function testStubInput()
+    {
+        $arrow = KleisliIO::id()->stubInput(10);
+        $result = $arrow->run(null);
+
+        $expectedResult = 10;
+
+        $this->assertEquals($expectedResult, $result->unwrapSuccess($this->createClosureNotCalled()));
+    }
 }
