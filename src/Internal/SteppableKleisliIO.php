@@ -24,14 +24,14 @@ class SteppableKleisliIO
     /**
      * @var StagedKleisliIO<INPUT,OUTPUT,ERR, ERRPREV>
      */
-    private StagedKleisliIO $skio;
+    private StagedKleisliIO $stageKio;
 
     /**
-     * @param StagedKleisliIO<INPUT,OUTPUT,ERR,ERRPREV> $skio
+     * @param StagedKleisliIO<INPUT,OUTPUT,ERR,ERRPREV> $stageKio
      */
-    private function __construct(StagedKleisliIO $skio)
+    private function __construct(StagedKleisliIO $stageKio)
     {
-        $this->skio = $skio;
+        $this->stageKio = $stageKio;
     }
 
     /**
@@ -40,13 +40,13 @@ class SteppableKleisliIO
      * @template _ERR
      * @template _ERRPREV
      *
-     * @param StagedKleisliIO<_INPUT,_OUTPUT,_ERR,_ERRPREV> $skio
+     * @param StagedKleisliIO<_INPUT,_OUTPUT,_ERR,_ERRPREV> $stageKio
      *
      * @return SteppableKleisliIO<_INPUT,_OUTPUT,_ERR,_ERRPREV>
      */
-    public static function augment(StagedKleisliIO $skio)
+    public static function augment(StagedKleisliIO $stageKio)
     {
-        return new self($skio);
+        return new self($stageKio);
     }
 
     /**
@@ -59,12 +59,12 @@ class SteppableKleisliIO
     public function runStep($input = null): SteppableKleisliIO
     {
         if (is_null($input)) {
-            $input = $this->skio->getContext()->fst();
+            $input = $this->stageKio->getContext()->fst();
         }
 
-        return $this->skio->getContext()->snd()->match(
-            function (KleisliIO $skio) use ($input) {
-                $operationTag = $skio->getTag();
+        return $this->stageKio->getContext()->snd()->match(
+            function (KleisliIO $kio) use ($input) {
+                $operationTag = $kio->getTag();
 
                 switch ($operationTag) {
                     case KleisliIO::TAG_ID:
@@ -73,7 +73,7 @@ class SteppableKleisliIO
                         return SteppableKleisliIO::augment(StagedKleisliIO::stageWithoutArrow($input));
 
                     case KleisliIO::TAG_ARR:
-                        $k = $skio->getArg('f');
+                        $k = $kio->getArg('f');
 
                         $result = $input->flatMap(fn ($x) => call_user_func($k, $x));
 
@@ -81,14 +81,14 @@ class SteppableKleisliIO
                         return SteppableKleisliIO::augment(StagedKleisliIO::stageWithoutArrow($result));
 
                     case KleisliIO::TAG_LIFT_PURE:
-                        $k = $skio->getArg('f');
+                        $k = $kio->getArg('f');
 
                         $result = $input->flatMap(fn ($x) => IOMonad::pure(call_user_func($k, $x)));
 
                         return SteppableKleisliIO::augment(StagedKleisliIO::stageWithoutArrow($result));
 
                     case KleisliIO::TAG_LIFT_IMPURE:
-                        $k = $skio->getArg('f');
+                        $k = $kio->getArg('f');
 
                         $result = $input->flatMap(function ($x) use ($k) {
                             try {
@@ -101,20 +101,20 @@ class SteppableKleisliIO
                         return SteppableKleisliIO::augment(StagedKleisliIO::stageWithoutArrow($result));
 
                     case KleisliIO::TAG_FLAT_MAP:
-                        $that = $skio->getArg('that');
-                        $fs = $skio->getArg('fs');
+                        $that = $kio->getArg('that');
+                        $fs = $kio->getArg('fs');
 
                         // @phpstan-ignore argument.type
                         return FlatMap::create($that, $fs)->runStep($input);
 
                     case KleisliIO::TAG_AND_THEN:
-                        $ks = $skio->getArg('ks');
+                        $ks = $kio->getArg('ks');
 
                         // @phpstan-ignore argument.type
                         return AndThen::create($ks)->runStep($input);
 
                     case KleisliIO::TAG_PROMPT:
-                        $k = $skio->getArg('k');
+                        $k = $kio->getArg('k');
 
                         // we need a steppable prompt..
                         // currently the control kio is one step
@@ -125,7 +125,7 @@ class SteppableKleisliIO
 
                     default:
                         // should this be a panic ?
-                        $error = new \InvalidArgumentException('SteppableKleisliIO: [BUG] Unknown operation: '.$skio->getTag());
+                        $error = new \InvalidArgumentException('SteppableKleisliIO: [BUG] Unknown operation: '.$kio->getTag());
 
                         throw $error;
                         // return SteppableKleisliIO::augment(StagedKleisliIO::stageWithoutArrow(IOMonad::fail($error)));
@@ -137,7 +137,7 @@ class SteppableKleisliIO
 
     public function hasMoreSteps(): bool
     {
-        return $this->skio->getContext()->snd()->isSome();
+        return $this->stageKio->getContext()->snd()->isSome();
     }
 
     /**
@@ -149,7 +149,7 @@ class SteppableKleisliIO
     public function getResult(): Option
     {
         if (!$this->hasMoreSteps()) {
-            return Option::some($this->skio->getContext()->fst());
+            return Option::some($this->stageKio->getContext()->fst());
         }
 
         return Option::none();
