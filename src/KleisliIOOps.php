@@ -81,33 +81,6 @@ class KleisliIOOps
     }
 
     /**
-     * Alias for andThen on KleisliIO.
-     *
-     * ">>>".
-     * A composition operator >>> that can attach a second arrow to a first
-     * as long as the first function’s output and the second’s input have matching types.
-     *
-     * -- | Left-to-right composition
-     * (>>>) :: Category cat => cat a b -> cat b c -> cat a c
-     * f >>> g = g . f
-     *
-     * @template _INPUTF
-     * @template _OUTPUTF
-     * @template _OUTPUTG
-     * @template _ERRF
-     * @template _ERRG
-     *
-     * @param KleisliIO<_INPUTF,_OUTPUTF,_ERRF>  $f
-     * @param KleisliIO<_OUTPUTF,_OUTPUTG,_ERRG> $g
-     *
-     * @return KleisliIO<_INPUTF,_OUTPUTG,_ERRF|_ERRG>
-     */
-    public static function compose(KleisliIO $f, KleisliIO $g): KleisliIO
-    {
-        return $f->andThen($g);
-    }
-
-    /**
      * "***".
      * A merging operator *** that can take two arrows, possibly with different
      * input and output types, and fuse them into one arrow between two compound types.

@@ -42,22 +42,6 @@ class KleisliIOOpsTest extends TestCase
         $this->assertEquals($expectedResult, $result->unwrapSuccess($this->createClosureNotCalled()));
     }
 
-    public function testCompose()
-    {
-        // f >>> g = g . f
-        // g after f
-        $funcF = fn (int $x) => $x + 10;
-        $funcG = fn (int $x) => $x * 10;
-
-        $kleisliArrowF = KleisliIO::liftPure($funcF);
-        $kleisliArrowG = KleisliIO::liftPure($funcG);
-
-        $arrowComposed = KleisliIOOps::compose($kleisliArrowF, $kleisliArrowG);
-        $result = $arrowComposed->run(10);
-        $expectedResult = 200;
-        $this->assertEquals($expectedResult, $result->unwrapSuccess($this->createClosureNotCalled()));
-    }
-
     public function testMerge()
     {
         $funcF = fn (int $x) => $x + 10;
