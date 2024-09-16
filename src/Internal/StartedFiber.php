@@ -18,7 +18,7 @@ class StartedFiber
     /**
      * @var Option<SteppableKleisliIO<INPUT,OUTPUT,ERR,ERRPREV>>
      */
-    private Option $steppableArrowOption;
+    private Option $stepKioOption;
 
     /**
      * @var Option<IOMonad<OUTPUT,ERRPREV>>
@@ -26,12 +26,12 @@ class StartedFiber
     private Option $resultOption;
 
     /**
-     * @param Option<SteppableKleisliIO<INPUT,OUTPUT,ERR,ERRPREV>> $steppableArrowOption
+     * @param Option<SteppableKleisliIO<INPUT,OUTPUT,ERR,ERRPREV>> $stepKioOption
      * @param Option<IOMonad<OUTPUT,ERRPREV>>                      $resultOption
      */
-    private function __construct(Option $steppableArrowOption, Option $resultOption)
+    private function __construct(Option $stepKioOption, Option $resultOption)
     {
-        $this->steppableArrowOption = $steppableArrowOption;
+        $this->stepKioOption = $stepKioOption;
         $this->resultOption = $resultOption;
     }
 
@@ -57,14 +57,14 @@ class StartedFiber
      * @template _ERR
      * @template _ERRPREV
      *
-     * @param SteppableKleisliIO<_INPUT,_OUTPUT,_ERR,_ERRPREV> $steppableArrow
+     * @param SteppableKleisliIO<_INPUT,_OUTPUT,_ERR,_ERRPREV> $stepKio
      *
      * @return StartedFiber<_INPUT,_OUTPUT,_ERR,_ERRPREV>
      */
-    public static function createFromSteppableArrow(SteppableKleisliIO $steppableArrow): StartedFiber
+    public static function createFromSteppableArrow(SteppableKleisliIO $stepKio): StartedFiber
     {
         return new self(
-            Option::some($steppableArrow),
+            Option::some($stepKio),
             Option::none(),
         );
     }
@@ -74,9 +74,9 @@ class StartedFiber
      */
     public function resume($input = null): StartedFiber
     {
-        return $this->steppableArrowOption->match(
-            function ($steppableArrow) use ($input) {
-                $r = $steppableArrow->runStep($input);
+        return $this->stepKioOption->match(
+            function ($stepKio) use ($input) {
+                $r = $stepKio->runStep($input);
 
                 return $r->getResult()->match(
                     fn ($result) => StartedFiber::createFromResult($result),
@@ -90,7 +90,7 @@ class StartedFiber
     public function isSuspended()
     {
         // it is suspended if we have something left to do..
-        return $this->steppableArrowOption->isSome();
+        return $this->stepKioOption->isSome();
     }
 
     /**

@@ -26,11 +26,11 @@ class StagedKleisliIO
 
     /**
      * @param IOMonad<INPUT,ERRPREV>              $input
-     * @param Option<KleisliIO<INPUT,OUTPUT,ERR>> $arrowOption
+     * @param Option<KleisliIO<INPUT,OUTPUT,ERR>> $kioOption
      */
-    private function __construct($input, Option $arrowOption)
+    private function __construct($input, Option $kioOption)
     {
-        $this->context = Tuple::create($input, $arrowOption);
+        $this->context = Tuple::create($input, $kioOption);
     }
 
     /**
@@ -40,13 +40,13 @@ class StagedKleisliIO
      * @template _ERRPREV
      *
      * @param IOMonad<_INPUT,_ERRPREV>       $input
-     * @param KleisliIO<_INPUT,_OUTPUT,_ERR> $arrow
+     * @param KleisliIO<_INPUT,_OUTPUT,_ERR> $kio
      *
      * @return StagedKleisliIO<_INPUT,_OUTPUT,_ERR,_ERRPREV>
      */
-    public static function stageWithArrow($input, KleisliIO $arrow): StagedKleisliIO
+    public static function stageWithArrow($input, KleisliIO $kio): StagedKleisliIO
     {
-        return new self($input, Option::some($arrow));
+        return new self($input, Option::some($kio));
     }
 
     /**
@@ -68,13 +68,13 @@ class StagedKleisliIO
     public function resume(): IOMonad
     {
         $previousResult = $this->context->fst();
-        $arrowOption = $this->context->snd();
+        $kioOption = $this->context->snd();
 
         return $previousResult->match(
-            function ($input) use ($arrowOption, $previousResult) {
-                return $arrowOption->match(
-                    function ($arrow) use ($input) {
-                        return $arrow->run($input);
+            function ($input) use ($kioOption, $previousResult) {
+                return $kioOption->match(
+                    function ($kio) use ($input) {
+                        return $kio->run($input);
                     },
                     fn () => $previousResult
                 );
