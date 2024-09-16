@@ -9,6 +9,7 @@ use Zodimo\Arrow\Internal\StagedKleisliIO;
 use Zodimo\Arrow\Internal\SteppableKleisliIO;
 use Zodimo\Arrow\KleisliIO;
 use Zodimo\Arrow\Tests\MockClosureTrait;
+use Zodimo\Arrow\Transformers\Prompt;
 use Zodimo\BaseReturn\IOMonad;
 
 /**
@@ -657,6 +658,48 @@ class SteppableKleisliIOTest extends TestCase
             $step->getResult()
                 ->unwrap($this->createClosureNotCalled())
                 ->unwrapFailure($this->createClosureNotCalled())
+        );
+    }
+
+    /**
+     * PROMPT.
+     */
+    public function testCanStepWithArrowPromptInputSuccessWithoutAdditionalInput()
+    {
+        /**
+         * PROMPT: 1
+         * input success
+         * arrow[PROMPT] return success
+         * additional input null.
+         */
+        $input = IOMonad::pure(10);
+        $staged = StagedKleisliIO::stageWithArrow(
+            $input,
+            Prompt::create(
+                KleisliIO::liftPure(fn (int $x) => $x + 10)
+                    ->andThen(
+                        KleisliIO::control(
+                            fn ($k) => call_user_func(
+                                $k,
+                                KleisliIO::liftPure(fn (int $x) => $x * 2)
+                                    ->andThen(KleisliIO::liftPure(fn (int $x) => $x + 2))
+                            )
+                        )
+                    )
+            )
+        );
+        $steppable = SteppableKleisliIO::augment($staged);
+        $this->assertTrue($steppable->hasMoreSteps());
+        $step = $steppable->runStep();
+        $step = $step->runStep();
+        $step = $step->runStep();
+        $this->assertFalse($step->hasMoreSteps());
+        $this->assertTrue($step->getResult()->isSome());
+        $this->assertEquals(
+            42,
+            $step->getResult()
+                ->unwrap($this->createClosureNotCalled())
+                ->unwrapSuccess($this->createClosureNotCalled())
         );
     }
 }

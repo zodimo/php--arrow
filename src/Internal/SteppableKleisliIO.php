@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Zodimo\Arrow\Internal;
 
+use Zodimo\Arrow\Handlers\Steppable\AndThen;
+use Zodimo\Arrow\Handlers\Steppable\FlatMap;
 use Zodimo\Arrow\KleisliIO;
+use Zodimo\Arrow\Transformers\Prompt;
 use Zodimo\BaseReturn\IOMonad;
 use Zodimo\BaseReturn\Option;
 
@@ -101,63 +104,24 @@ class SteppableKleisliIO
                         $that = $skio->getArg('that');
                         $fs = $skio->getArg('fs');
 
-                        $k = array_shift($fs);
-
-                        // Kleisli f >>= k = Kleisli $ \x -> f x >>= \a -> runKleisli (k a) x
-
-                        $result = $input->flatMap(function ($x) use ($that) {
-                            return $that->run($x);
-                        });
-
-                        return $result->match(
-                            function ($x) use ($k, $fs, $result) {
-                                $that = call_user_func($k, $x);
-
-                                if (count($fs) > 0) {
-                                    $arrow = KleisliIO::create(
-                                        Operation::create(KleisliIO::TAG_FLAT_MAP)
-                                            ->setArg('that', $that)
-                                            ->setArg('fs', $fs)
-                                    );
-
-                                    // @phpstan-ignore argument.type
-                                    return SteppableKleisliIO::augment(StagedKleisliIO::stageWithArrow($result, $arrow));
-                                }
-
-                                // @phpstan-ignore argument.type
-                                return SteppableKleisliIO::augment(StagedKleisliIO::stageWithArrow($result, $that));
-                            },
-                            // @phpstan-ignore argument.type
-                            fn ($_) => SteppableKleisliIO::augment(StagedKleisliIO::stageWithoutArrow($result))
-                        );
+                        // @phpstan-ignore argument.type
+                        return FlatMap::create($that, $fs)->runStep($input);
 
                     case KleisliIO::TAG_AND_THEN:
                         $ks = $skio->getArg('ks');
 
-                        /**
-                         * @var KleisliIO $k
-                         */
-                        $k = array_shift($ks);
-                        $result = $input->flatMap(function ($x) use ($k) {
-                            return $k->run($x);
-                        });
-                        // $nextK = array_shift($ks);
+                        // @phpstan-ignore argument.type
+                        return AndThen::create($ks)->runStep($input);
 
-                        return $result->match(
-                            function ($x) use ($ks, $result) {
-                                if (count($ks) > 0) {
-                                    $arrow = KleisliIO::create(
-                                        Operation::create(KleisliIO::TAG_AND_THEN)
-                                            ->setArg('ks', $ks)
-                                    );
+                    case KleisliIO::TAG_PROMPT:
+                        $k = $skio->getArg('k');
 
-                                    return SteppableKleisliIO::augment(StagedKleisliIO::stageWithArrow($result, $arrow));
-                                }
+                        // we need a steppable prompt..
+                        // currently the control kio is one step
+                        $arrow = Prompt::create($k);
 
-                                return SteppableKleisliIO::augment(StagedKleisliIO::stageWithoutArrow($result));
-                            },
-                            fn ($_) => SteppableKleisliIO::augment(StagedKleisliIO::stageWithoutArrow($result))
-                        );
+                        // @phpstan-ignore argument.type
+                        return SteppableKleisliIO::augment(StagedKleisliIO::stageWithArrow($input, $arrow));
 
                     default:
                         // should this be a panic ?
