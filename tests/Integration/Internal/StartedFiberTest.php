@@ -44,8 +44,15 @@ class StartedFiberTest extends TestCase
 
     public function testStackSafetyAndThen()
     {
+        $stepCounter = $this->createClosureMock();
+        $stepCounter->expects($this->exactly(1000))->method('__invoke');
+
         $input = IOMonad::pure(0);
-        $addOne = KleisliIO::liftPure(fn (int $x) => $x + 1);
+        $addOne = KleisliIO::liftPure(function (int $x) use ($stepCounter) {
+            $stepCounter();
+
+            return $x + 1;
+        });
 
         $composition = KleisliIO::id();
 
@@ -63,8 +70,15 @@ class StartedFiberTest extends TestCase
 
     public function testStackSafetyFlatMap()
     {
+        $stepCounter = $this->createClosureMock();
+        $stepCounter->expects($this->exactly(1000))->method('__invoke');
+
         $input = IOMonad::pure(0);
-        $addOneK = fn (int $x) => KleisliIO::liftPure(fn (int $_) => $x + 1);
+        $addOneK = fn (int $x) => KleisliIO::liftPure(function (int $_) use ($x, $stepCounter) {
+            $stepCounter();
+
+            return $x + 1;
+        });
 
         $composition = KleisliIO::id();
 
