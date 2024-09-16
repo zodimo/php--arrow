@@ -221,18 +221,18 @@ class KleisliIO
                 return $andThen->asKleisliIO()->run($value);
 
             case self::TAG_PROMPT:
-                $k = $this->getArg('k');
+                $kio = $this->getArg('k');
 
-                return Prompt::create($k)->run($value);
+                return Prompt::create($kio)->run($value);
 
             case self::TAG_STUB_INPUT:
                 /**
-                 * @var KleisliIO $k
+                 * @var KleisliIO $kio
                  */
-                $k = $this->getArg('k');
+                $kio = $this->getArg('k');
                 $input = $this->getArg('input');
 
-                return $k->run($input);
+                return $kio->run($input);
 
             default:
                 throw new \InvalidArgumentException('Unknown operation: '.$this->getTag());
