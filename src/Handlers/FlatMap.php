@@ -30,9 +30,9 @@ class FlatMap
      * @template _OUTPUT
      * @template _ERR
      *
-     * @param KleisliIO<_INPUT,_OUTPUT, _ERR> $that
+     * @param KleisliIO<_INPUT,_OUTPUT,_ERR> $that
      *
-     * @return FlatMap<_INPUT,_OUTPUT, _ERR>
+     * @return FlatMap<_INPUT,_OUTPUT,_ERR>
      */
     public static function initializeWith(KleisliIO $that): FlatMap
     {
@@ -45,9 +45,9 @@ class FlatMap
      * @template _OUTPUTF
      * @template _ERRF
      *
-     * @param callable(OUTPUT):KleisliIO<INPUT,_OUTPUTF, _ERRF> $f
+     * @param callable(OUTPUT):KleisliIO<INPUT,_OUTPUTF,_ERRF> $f
      *
-     * @return FlatMap<INPUT,_OUTPUTF, _ERRF|ERR>
+     * @return FlatMap<INPUT,_OUTPUTF,_ERRF|ERR>
      */
     public function addF(callable $f): FlatMap
     {
@@ -60,7 +60,7 @@ class FlatMap
     /**
      * @param INPUT $value
      *
-     * @return IOMonad<OUTPUT ,ERR>
+     * @return IOMonad<OUTPUT,ERR>
      */
     public function run($value): IOMonad
     {
@@ -89,7 +89,7 @@ class FlatMap
     }
 
     /**
-     * @return KleisliIO<INPUT, OUTPUT ,ERR>
+     * @return KleisliIO<INPUT,OUTPUT,ERR>
      */
     public function asKleisliIO(): KleisliIO
     {

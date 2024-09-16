@@ -19,6 +19,7 @@
         "php-cs-fixer.allowRisky": true,
         "phpstan.binPath": "/workspace/vendor/bin/phpstan",
         "phpstan.singleFileMode": true,
+        "php.version": "7.4",
         "[php]": {
           "editor.defaultFormatter": "junstyle.php-cs-fixer"
         },
