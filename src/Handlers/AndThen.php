@@ -45,6 +45,9 @@ class AndThen
      */
     public function addArrow(KleisliIO $arrow): AndThen
     {
+        if (KleisliIO::TAG_ID == $arrow->getTag()) {
+            return $this;
+        }
         $clone = clone $this;
         $clone->arrows[] = $arrow;
 
@@ -75,13 +78,5 @@ class AndThen
         }
 
         return $result;
-    }
-
-    /**
-     * @return KleisliIO<INPUT,OUTPUT,ERR>
-     */
-    public function asKleisliIO(): KleisliIO
-    {
-        return KleisliIO::arr(fn ($value) => $this->run($value));
     }
 }

@@ -218,7 +218,7 @@ class KleisliIO
                     return $acc->addArrow($item);
                 }, AndThen::id());
 
-                return $andThen->asKleisliIO()->run($value);
+                return $andThen->run($value);
 
             case self::TAG_PROMPT:
                 $kio = $this->getArg('k');
