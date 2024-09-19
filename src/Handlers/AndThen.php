@@ -30,7 +30,7 @@ class AndThen
      */
     public static function id(): AndThen
     {
-        return new self([KleisliIO::id()]);
+        return new self([]);
     }
 
     /**
