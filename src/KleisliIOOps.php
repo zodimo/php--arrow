@@ -45,7 +45,7 @@ class KleisliIOOps
             $input = $args->fst();
             $d = $args->snd();
 
-            return $arrow->run($input)->flatmap(fn ($c) => IOMonad::pure(Tuple::create($c, $d)));
+            return $arrow->run($input)->flatMap(fn ($c) => IOMonad::pure(Tuple::create($c, $d)));
         };
 
         // @phpstan-ignore return.type
@@ -73,7 +73,7 @@ class KleisliIOOps
             $input = $args->snd();
             $d = $args->fst();
 
-            return $arrow->run($input)->flatmap(fn ($c) => IOMonad::pure(Tuple::create($d, $c)));
+            return $arrow->run($input)->flatMap(fn ($c) => IOMonad::pure(Tuple::create($d, $c)));
         };
 
         // @phpstan-ignore return.type
@@ -271,7 +271,7 @@ class KleisliIOOps
         $func = function ($input) use ($acquire, $during, $release) {
             $acquireResult = $acquire->run($input);
 
-            return $acquireResult->flatmap(
+            return $acquireResult->flatMap(
                 // @phpstan-ignore argument.type
                 function ($acquiredResource) use ($during, $release) {
                     try {

@@ -103,10 +103,10 @@ class KleisliIOTest extends TestCase
             return KleisliIO::liftPure(fn ($_) => $x + 20);
         };
 
-        $flatmapArrow = $arrow->flatMap($choice);
+        $flatMapArrow = $arrow->flatMap($choice);
 
-        $this->assertEquals(12, $flatmapArrow->run(2)->unwrapSuccess($this->createClosureNotCalled()), '([2] + 5 )< 10  = [2] + 10');
-        $this->assertEquals(32, $flatmapArrow->run(7)->unwrapSuccess($this->createClosureNotCalled()), '([7] + 5) > 10 = [7 + 5]  + 20');
+        $this->assertEquals(12, $flatMapArrow->run(2)->unwrapSuccess($this->createClosureNotCalled()), '([2] + 5 )< 10  = [2] + 10');
+        $this->assertEquals(32, $flatMapArrow->run(7)->unwrapSuccess($this->createClosureNotCalled()), '([7] + 5) > 10 = [7 + 5]  + 20');
     }
 
     public function testFlatMap2()
@@ -116,9 +116,9 @@ class KleisliIOTest extends TestCase
         // not so intuitive...
         $func = fn (int $y) => KleisliIO::liftPure(fn ($_) => $y + 10);
 
-        $flatmapArrow = $arrow->flatMap($func)->flatMap($func);
+        $flatMapArrow = $arrow->flatMap($func)->flatMap($func);
 
-        $this->assertEquals(27, $flatmapArrow->run(2)->unwrapSuccess($this->createClosureNotCalled()), '[2] + 5 + 10 + 10');
+        $this->assertEquals(27, $flatMapArrow->run(2)->unwrapSuccess($this->createClosureNotCalled()), '[2] + 5 + 10 + 10');
     }
 
     public function testAndThenK()
@@ -127,9 +127,9 @@ class KleisliIOTest extends TestCase
 
         $func = fn (int $x) => IOMonad::pure($x + 10);
 
-        $flatmapArrow = $arrow->andThenK($func);
+        $flatMapArrow = $arrow->andThenK($func);
 
-        $this->assertEquals(17, $flatmapArrow->run(2)->unwrapSuccess($this->createClosureNotCalled()), '[2] +7 + 10 ');
+        $this->assertEquals(17, $flatMapArrow->run(2)->unwrapSuccess($this->createClosureNotCalled()), '[2] +7 + 10 ');
     }
 
     public function testAndThen()
@@ -138,9 +138,9 @@ class KleisliIOTest extends TestCase
 
         $func = fn (int $x) => IOMonad::pure($x + 10);
 
-        $flatmapArrow = $arrow->andThen(KleisliIO::arr($func));
+        $flatMapArrow = $arrow->andThen(KleisliIO::arr($func));
 
-        $this->assertEquals(17, $flatmapArrow->run(2)->unwrapSuccess($this->createClosureNotCalled()), '[2] +7 + 10 ');
+        $this->assertEquals(17, $flatMapArrow->run(2)->unwrapSuccess($this->createClosureNotCalled()), '[2] +7 + 10 ');
     }
 
     public function testStackSafetyAndThen()
@@ -176,7 +176,7 @@ class KleisliIOTest extends TestCase
         $composition = KleisliIO::id();
 
         foreach (range(0, 999) as $_) {
-            $composition = $composition->flatmap($addOneK);
+            $composition = $composition->flatMap($addOneK);
         }
 
         $this->assertEquals(1000, $composition->run(0)->unwrapSuccess($this->createClosureNotCalled()));

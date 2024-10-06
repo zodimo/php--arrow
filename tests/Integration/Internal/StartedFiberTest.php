@@ -83,7 +83,7 @@ class StartedFiberTest extends TestCase
         $composition = KleisliIO::id();
 
         foreach (range(0, 999) as $_) {
-            $composition = $composition->flatmap($addOneK);
+            $composition = $composition->flatMap($addOneK);
         }
 
         $staged = StagedKleisliIO::stageWithArrow($input, $composition);

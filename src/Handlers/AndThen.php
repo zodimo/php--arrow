@@ -74,7 +74,7 @@ class AndThen
             if (!$next instanceof KleisliIO) {
                 break;
             }
-            $result = $result->flatmap(fn ($v) => $next->run($v));
+            $result = $result->flatMap(fn ($v) => $next->run($v));
         }
 
         return $result;

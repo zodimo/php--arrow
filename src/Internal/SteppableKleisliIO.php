@@ -85,7 +85,6 @@ class SteppableKleisliIO
 
                         $result = $input->flatMap(fn ($x) => IOMonad::pure(call_user_func($k, $x)));
 
-                        // @phpstan-ignore argument.type
                         return SteppableKleisliIO::augment(StagedKleisliIO::stageWithoutArrow($result));
 
                     case KleisliIO::TAG_LIFT_IMPURE:
@@ -99,7 +98,6 @@ class SteppableKleisliIO
                             }
                         });
 
-                        // @phpstan-ignore argument.type
                         return SteppableKleisliIO::augment(StagedKleisliIO::stageWithoutArrow($result));
 
                     case KleisliIO::TAG_FLAT_MAP:
