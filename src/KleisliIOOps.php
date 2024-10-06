@@ -261,7 +261,7 @@ class KleisliIOOps
      * @param KleisliIO<_OUTPUT,_OUTPUTF,_ERRF> $during
      * @param KleisliIO<_OUTPUT,null,_ERRG>     $release
      *
-     * @return KleisliIO<_INPUT,Tuple<IOMonad<_OUTPUTF,_ERRF|\Throwable>,IOMonad<null,_ERRG>>,_ERR>
+     * @return KleisliIO<_INPUT,Tuple<IOMonad<_OUTPUTF,_ERRF|\Throwable>,IOMonad<null,_ERRG>>,never>
      */
     public static function bracket(KleisliIO $acquire, KleisliIO $during, KleisliIO $release): KleisliIO
     {
@@ -272,20 +272,20 @@ class KleisliIOOps
             $acquireResult = $acquire->run($input);
 
             return $acquireResult->flatMap(
-                // @phpstan-ignore argument.type
                 function ($acquiredResource) use ($during, $release) {
                     try {
                         $duringResult = $during->run($acquiredResource);
-                        $releaseResult = $release->run($acquiredResource);
-
-                        return IOMonad::pure(Tuple::create($duringResult, $releaseResult));
-                    } catch (\Throwable $e) {
-                        // fail safe
-                        $duringResult = IOMonad::fail($e);
-                        $releaseResult = $release->run($acquiredResource);
-
-                        return IOMonad::pure(Tuple::create($duringResult, $releaseResult));
+                    } catch (\Throwable $duringError) {
+                        $duringResult = IOMonad::fail($duringError);
                     }
+
+                    try {
+                        $releaseResult = $release->run($acquiredResource);
+                    } catch (\Throwable $releaseError) {
+                        $releaseResult = IOMonad::fail($releaseError);
+                    }
+
+                    return IOMonad::pure(Tuple::create($duringResult, $releaseResult));
                 }
             );
         };
