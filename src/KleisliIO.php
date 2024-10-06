@@ -312,7 +312,7 @@ class KleisliIO
      *
      * @param INPUT $value
      *
-     * @return KleisliIO<null,OUTPUT,ERR>
+     * @return KleisliIO<mixed,OUTPUT,ERR>
      */
     public function stubInput($value): KleisliIO
     {
