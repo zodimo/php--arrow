@@ -121,6 +121,55 @@ class KleisliIOTest extends TestCase
         $this->assertEquals(27, $flatMapArrow->run(2)->unwrapSuccess($this->createClosureNotCalled()), '[2] + 5 + 10 + 10');
     }
 
+    public function testFlatMap3()
+    {
+        /**
+         * instance Monad m => Monad (Kleisli m a) where
+         *   Kleisli f >>= k = Kleisli $ \x -> f x >>= \a -> runKleisli (k a) x.
+         */
+        $input = 10;
+        $that = $this;
+
+        $arrow1 = KleisliIO::liftPure(function (int $x) use ($that, $input) {
+            $that->assertEquals($input, $x, '$arrow1: $input=$x');
+
+            return $x + 5;
+        });
+        $arrow2 = KleisliIO::liftPure(function (int $x) use ($that, $input) {
+            $that->assertEquals($input, $x, '$arrow2: $input=$x');
+
+            return $x + 10;
+        });
+        $arrow3 = KleisliIO::liftPure(function (int $x) use ($that, $input) {
+            $that->assertEquals($input, $x, '$arrow3: $input=$x');
+
+            return $x + 15;
+        });
+
+        $arrow = $arrow1
+        // flatMap 1
+            ->flatMap(
+                function ($x1) use ($arrow2, $that) {
+                    $that->assertEquals(15, $x1, 'flatMap[1]: $x1 = $arrow1->run($input) 10 + 5');
+
+                    return $arrow2;
+                }
+            )
+            // flatMap 2
+            ->flatMap(
+                function ($x2) use ($arrow3, $that) {
+                    $that->assertEquals(20, $x2, 'flatMap[2]: $x2  $arrow2->run($input) 10 + 10');
+
+                    return $arrow3;
+                }
+            )
+        ;
+
+        $result = $arrow->run($input);
+        $this->assertTrue($result->isSuccess());
+        $this->assertEquals(25, $result->unwrapSuccess($this->createClosureNotCalled()), 'result of $arrow3: input[10] + 15');
+    }
+
     public function testAndThenK()
     {
         $arrow = KleisliIO::liftPure(fn (int $x) => $x + 5);
