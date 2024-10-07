@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Zodimo\Arrow;
 
+use OpenTelemetry\API\Globals;
+use OpenTelemetry\API\Trace\SpanBuilderInterface;
 use Zodimo\Arrow\Handlers\AndThen;
 use Zodimo\Arrow\Handlers\FlatMap;
 use Zodimo\Arrow\Internal\KFiber;
@@ -12,6 +14,7 @@ use Zodimo\Arrow\Internal\StagedKleisliIO;
 use Zodimo\Arrow\Internal\SteppableKleisliIO;
 use Zodimo\Arrow\Transformers\Prompt;
 use Zodimo\BaseReturn\IOMonad;
+use Zodimo\BaseReturn\Option;
 
 /**
  * it assumes that a handles exists to perform A->E[B].
@@ -33,9 +36,15 @@ class KleisliIO
     public const TAG_STUB_INPUT = 'stub-input';
     protected Operation $_operation;
 
+    /**
+     * @var Option<SpanBuilderInterface>
+     */
+    protected Option $_spanBuilder;
+
     protected function __construct(Operation $operation)
     {
         $this->_operation = $operation;
+        $this->_spanBuilder = Option::none();
     }
 
     public static function create(Operation $operation): KleisliIO
@@ -167,79 +176,6 @@ class KleisliIO
     }
 
     /**
-     * @param INPUT $value
-     *
-     * @return IOMonad<OUTPUT,ERR>
-     */
-    public function run($value): IOMonad
-    {
-        switch ($this->getTag()) {
-            case self::TAG_ID:
-                // @phpstan-ignore return.type
-                return IOMonad::pure($value);
-
-            case self::TAG_ARR:
-                $f = $this->getArg('f');
-
-                return call_user_func($f, $value);
-
-            case self::TAG_LIFT_PURE:
-                $f = $this->getArg('f');
-
-                return IOMonad::pure(call_user_func($f, $value));
-
-            case self::TAG_LIFT_IMPURE:
-                $f = $this->getArg('f');
-
-                try {
-                    return IOMonad::pure(call_user_func($f, $value));
-                } catch (\Throwable $e) {
-                    // @phpstan-ignore return.type
-                    return IOMonad::fail($e);
-                }
-
-            case self::TAG_FLAT_MAP:
-                $that = $this->getArg('that');
-                $fs = $this->getArg('fs');
-
-                $flatMap = array_reduce($fs, function (FlatMap $acc, callable $item) {
-                    return $acc->addF($item);
-                }, FlatMap::initializeWith($that));
-
-                return $flatMap->asKleisliIO()->run($value);
-
-            case self::TAG_AND_THEN:
-                $ks = $this->getArg('ks');
-
-                /**
-                 * @var AndThen $andThen
-                 */
-                $andThen = array_reduce($ks, function ($acc, $item) {
-                    return $acc->addArrow($item);
-                }, AndThen::id());
-
-                return $andThen->run($value);
-
-            case self::TAG_PROMPT:
-                $kio = $this->getArg('k');
-
-                return Prompt::create($kio)->run($value);
-
-            case self::TAG_STUB_INPUT:
-                /**
-                 * @var KleisliIO $kio
-                 */
-                $kio = $this->getArg('k');
-                $input = $this->getArg('input');
-
-                return $kio->run($input);
-
-            default:
-                throw new \InvalidArgumentException('Unknown operation: '.$this->getTag());
-        }
-    }
-
-    /**
      * @template _INPUT
      * @template _OUTPUT
      *
@@ -337,5 +273,132 @@ class KleisliIO
     public function stage($input): StagedKleisliIO
     {
         return StagedKleisliIO::stageWithArrow($input, $this);
+    }
+
+    /**
+     * @param array<string,mixed> $options
+     */
+    public function withSpan(string $spanName, array $options = []): KleisliIO
+    {
+        $tracer = Globals::tracerProvider()->getTracer('zodimo.arrow.KleisliIO');
+        $spanBuilder = $tracer->spanBuilder($spanName);
+        $attributes = $options['attributes'] ?? [];
+        $parent = $options['parent'] ?? null;
+        $spanBuilder->setAttributes($attributes);
+        $spanBuilder->setParent($parent);
+
+        $this->_spanBuilder = Option::some($spanBuilder);
+
+        return $this;
+    }
+
+    /**
+     * @param INPUT $value
+     *
+     * @return IOMonad<OUTPUT,ERR>
+     */
+    public function run($value): IOMonad
+    {
+        return $this->_spanBuilder->match(
+            function (SpanBuilderInterface $spanBuilder) use ($value) {
+                $span = $spanBuilder->startSpan();
+                $scope = $span->activate();
+
+                try {
+                    return $this
+                        ->_run($value)
+                        ->tapFailure(
+                            function ($error) use ($span) {
+                                if ($error instanceof \Throwable) {
+                                    $span->recordException($error);
+                                } else {
+                                    $exception = new \Exception((string) $error);
+                                    $span->recordException($exception);
+                                }
+
+                                return IOMonad::pure(null);
+                            }
+                        )
+                    ;
+                } finally {
+                    $span->end();
+                    $scope->detach();
+                }
+            },
+            fn () => $this->_run($value)
+        );
+    }
+
+    /**
+     * @param INPUT $value
+     *
+     * @return IOMonad<OUTPUT,ERR>
+     */
+    protected function _run($value): IOMonad
+    {
+        switch ($this->getTag()) {
+            case self::TAG_ID:
+                // @phpstan-ignore return.type
+                return IOMonad::pure($value);
+
+            case self::TAG_ARR:
+                $f = $this->getArg('f');
+
+                return call_user_func($f, $value);
+
+            case self::TAG_LIFT_PURE:
+                $f = $this->getArg('f');
+
+                return IOMonad::pure(call_user_func($f, $value));
+
+            case self::TAG_LIFT_IMPURE:
+                $f = $this->getArg('f');
+
+                try {
+                    return IOMonad::pure(call_user_func($f, $value));
+                } catch (\Throwable $e) {
+                    // @phpstan-ignore return.type
+                    return IOMonad::fail($e);
+                }
+
+            case self::TAG_FLAT_MAP:
+                $that = $this->getArg('that');
+                $fs = $this->getArg('fs');
+
+                $flatMap = array_reduce($fs, function (FlatMap $acc, callable $item) {
+                    return $acc->addF($item);
+                }, FlatMap::initializeWith($that));
+
+                return $flatMap->asKleisliIO()->run($value);
+
+            case self::TAG_AND_THEN:
+                $ks = $this->getArg('ks');
+
+                /**
+                 * @var AndThen $andThen
+                 */
+                $andThen = array_reduce($ks, function ($acc, $item) {
+                    return $acc->addArrow($item);
+                }, AndThen::id());
+
+                return $andThen->run($value);
+
+            case self::TAG_PROMPT:
+                $kio = $this->getArg('k');
+
+                return Prompt::create($kio)->run($value);
+
+            case self::TAG_STUB_INPUT:
+                /**
+                 * @var KleisliIO $kio
+                 */
+                $kio = $this->getArg('k');
+                $input = $this->getArg('input');
+
+                return $kio->run($input);
+
+            default:
+                throw new \InvalidArgumentException('Unknown operation: '.$this->getTag());
+        }
     }
 }
